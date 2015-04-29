@@ -20,14 +20,14 @@ repositories {
     mavenCentral()
 }
 dependencies {
-    compile 'io.keen:keen-client-api-java:2.0.3'
+    compile 'io.keen:keen-client-api-java:2.1.1'
 }
 ```
 
 For Android, use:
 
 ```groovy
-    compile 'io.keen:keen-client-api-android:2.0.3@aar'
+    compile 'io.keen:keen-client-api-android:2.1.1@aar'
 ```
 
 ### Maven
@@ -38,7 +38,7 @@ Paste the following snippet into your pom.xml:
 <dependency>
   <groupId>io.keen</groupId>
   <artifactId>keen-client-api-java</artifactId>
-  <version>2.0.3</version>
+  <version>2.1.1</version>
 </dependency>
 ```
 
@@ -219,6 +219,21 @@ keenProperties.put("addons", addons);
 KeenClient.client().queueEvent("android-sample-button-clicks", event, keenProperties);
 ```
 
+#### Building Event Maps
+
+You may use whatever means you find most convenient to construct the event `Map` objects that you provide to the Keen client. However, building the maps individually may become tedious (particularly if your events have deeply-nested properties). Using the Google Guava `ImmutableMap.Builder` class can tidy things up a bit; for example:
+
+```java
+final Map<String, Object> m = ImmutableMap.<String, Object>builder().
+        put("foo", 10).
+        put("bar", "some_value").
+        put("nested", ImmutableMap.<String, Object>builder().
+                put("a", true).
+                put("b", 17).
+                build()).
+        build();
+```
+
 #### Using Callbacks
 
 By default the library assumes that your events are "fire and forget", that is, you don't need to know when (or even if) they succeed. However if you do need to know for some reason, the client includes overloads of each method which take a `KeenCallback` object. This object allows you to receive notification when a request completes, as well as whether it succeeded and, if it failed, an `Exception` indicating the cause of the failure.
@@ -229,14 +244,24 @@ By default the library assumes that your events are "fire and forget", that is, 
 
 ### Generate a Scoped Key for Keen IO
 
-Here's a simple method to generate a Scoped Write Key:
+Here's a simple example of generating a Scoped Write Key:
 
 ```java
-    public String getScopedWriteKey(String apiKey) throws ScopedKeyException {
-        Map<String, Object> options = new HashMap<String, Object>();
-        options.put("allowed_operations", Arrays.asList("write"));
-        return ScopedKeys.encrypt(apiKey, options);
-    }
+    String masterApiKey = "YOUR_KEY_HERE"
+    Map<String, Object> filter = new HashMap<String, Object>();
+    List<Map<String, Object>> filters = new ArrayList<Map<String, Object>>();
+    Map<String, Object> options = new HashMap<String, Object>();
+
+    filter.put("property_name", "user_id");
+    filter.put("operator", "eq");
+    filter.put("property_value", "123");
+
+    filters.add(filter);
+
+    options.put("allowed_operations", Arrays.asList("write"));
+    options.put("filters", filters);
+
+    ScopedKeys.encrypt(masterApiKey, options);
 ```
 
 ### Publish Executor Lifecycle Management
@@ -348,6 +373,7 @@ The default encryption settings for JDK6+ don't allow using AES-256-CBC, which i
 
 * [Java 6 Unlimited Strength Jurisdiction Policy Files](http://www.oracle.com/technetwork/java/javase/downloads/jce-6-download-429243.html)
 * [Java 7 Unlimited Strength Jurisdiction Policy Files](http://www.oracle.com/technetwork/java/javase/downloads/jce-7-download-432124.html)
+* [Java 8 Unlimited Strength Jurisdiction Policy Files](http://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html)
 
 Follow the install instructions and scoped key generation should work. Note that the policy files will need to be installed on any device which runs your application, or scoped key generation will result in a runtime exception.
 
@@ -364,6 +390,16 @@ client.addEvent("collection-name", event, keenProperties);
 ```
 
 ## Changelog
+
+##### 2.1.1
+
++ Fixed bug that caused extra/corrupted events to be sent.
+
+##### 2.1.0
+
++ In Android SDK, check for network connectivity before attempting to POST.
++ Limit the number of times a failed event will be retried.
++ Updated version of KeenCallback with more information included.
 
 ##### 2.0.3
 
